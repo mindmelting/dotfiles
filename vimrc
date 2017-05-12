@@ -93,6 +93,9 @@ let g:syntastic_check_on_wq = 0
 " Toggle NerdTree with Ctrl+N
 map <C-n> :NERDTreeToggle<CR>
 
+" Let NerdTree show dotfiles.
+let NERDTreeShowHidden=1
+
 " Open NerdTree automatically on startup.
 " Also focus the *previous* window, i.e. the main window!
 autocmd vimenter * NERDTree | wincmd p

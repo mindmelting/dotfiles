@@ -29,7 +29,11 @@ else
     echo "NVM is installed..."
 fi
 
+# TODO: eslint? vimdeck?
+
 ask "Should I go on?"
+
+# TODO: install vim with homebrew.
 
 # Install vundle.
 read -p "Install Vundle? (y/n)" -n 1 -r
