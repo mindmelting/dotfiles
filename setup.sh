@@ -23,35 +23,6 @@ else
     exit 1
 fi
 
-# Perform MacOSX Dock Configuration.
-if [[ "$os" == "osx" ]]; then
-    if ask "$os: Standardise Dock Configuration?" Y; then
-        # Set my preferred dock size.
-        defaults write com.apple.dock tilesize -int 32; killall Dock
-        defaults write com.apple.dock largesize -float 64; killall Dock
-
-        # Only show apps which are open, rather than shortcuts.
-        defaults write com.apple.dock static-only -bool true; killall Dock
-    fi    
-    if ask "$os: Enable 'tap-to-click'?" Y; then
-        # Reference: http://osxdaily.com/2014/01/31/turn-on-mac-touch-to-click-command-line/
-        defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
-        sudo defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-        sudo defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
-        sudo defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
-    fi    
-    if ask "$os: Set wallpaper?" Y; then
-        osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"$(pwd)/desktop/vim-shortcuts2560x1600.png\""
-    fi
-    if ask "$os: Show hidden files and folders?" Y; then
-        defaults write com.apple.finder AppleShowAllFiles -bool true; killall Finder
-    fi
-
-    if ask "$os: Show the path bar in Finder?" Y; then
-        defaults write com.apple.finder ShowPathbar -bool true; killall Finder
-    fi
-fi
-
 # Setup any package manager required.
 if [[ "$os" == "osx" ]]; then
     echo "$os: Checking for brew..."
@@ -80,8 +51,9 @@ if [[ "$os" == "osx" ]]; then
         brew cask install google-chrome
         brew cask install 1password
         brew cask install dropbox
+        brew cask install sourcetree
         brew cask install vlc
-        brew cask install virtualbox && brew cask install vagrant && brew cask install virtualbox
+        brew cask install virtualbox && brew cask install vagrant
 
         # Programming.
         brew cask install iterm2
@@ -100,16 +72,6 @@ if [[ "$os" == "osx" ]]; then
         brew cask install docker
         brew install kubectl
         brew cask install minikube
-
-        # Gaming apps.
-        brew cask install steam
-
-        # File management / download / sharing apps.
-        brew cask install transmission
-        brew cask install cyberduck
-
-        # Virtual machines.
-        brew cask install parallels
 
         # Muzak stuff.
         brew cask install spotmenu
@@ -144,30 +106,15 @@ if [[ "$SHELL" != "/bin/zsh" ]]; then
     fi
 fi
 
-# Ensure tmux is up to date.
-if ask "$os: Install/Update tmux?" Y; then
-    if [[ "$os" == "osx" ]]; then
-        echo "$os: Updating tmux..."
-        brew install tmux
-    elif [[ "$os" == "ubuntu" ]]; then
-        echo "$os: Updating tmux..."
-        apt-get update && apt-get install tmux
-    fi
-    ensure_symlink "$(pwd)/tmux/tmux.conf" "$HOME/.tmux.conf"
-
-    # Setup the tmux plugin manager.
-    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-fi
-
 # Check the shell, and make sure that we are sourcing the .profile file.
 if ask "$os: Add .profile to bash/zsh?" Y; then
 	ensure_symlink "$(pwd)/profile.sh" "$HOME/.profile.sh"
 	ensure_symlink "$(pwd)/profile" "$HOME/.profile"
     echo "" >> ~/.bashrc
-    echo "# Load dwmkerr/dotfiles shell configuration." >> ~/.bashrc
+    echo "# Load dotfiles shell configuration." >> ~/.bashrc
     echo "source ~/.profile.sh" >> ~/.bashrc
     echo "" >> ~/.zshrc
-    echo "# Load dwmkerr/dotfiles shell configuration." >> ~/.zshrc
+    echo "# Load dotfiles shell configuration." >> ~/.zshrc
     echo "source ~/.profile.sh" >> ~/.zshrc
     if [[ "$SHELL" =~ bash ]]; then
         source ~/.bashrc
@@ -197,55 +144,28 @@ if ask "$os: Install/Update/Configure Vim?" Y; then
 fi
 
 # Configure Git.
-if ask "$os: Configure dwmkerr user for Git?" Y; then
-    if [[ "$os" == "osx" ]]; then
-        echo "$os: Installing gpg..."
-        # Install GPG and Pinentry for Mac.
-        brew install gnupg pinentry-mac
-
-        # Tell GPG to use pinentry-mac, and restart the agent.
-        echo "pinentry-program /usr/local/bin/pinentry-mac" >> ~/.gnupg/gpg-agent.conf
-        gpgconf --kill gpg-agent
-    elif [[ "$os" == "ubuntu" ]]; then
-        echo "$os: Installing gpg..."
-        apt-get install gnupg2
-    fi
-
-    echo "$os: Configuring Git for dwmkerr and GPG signing..."
-    git config --global user.name "Dave Kerr"
-    git config --global user.email "dwmkerr@gmail.com"
-    git config --global user.signingKey "35D965FB60ACC2E94E605038F780C45862199FEC"
-    git config --global commit.gpgSign true
-    git config --global tag.forceSignAnnotated true
-    git config --global gpg.program "gpg"
+if ask "$os: Configure mindmelting user for Git?" Y; then
+    echo "$os: Configuring Git for mindmelting"
+    git config --global user.name "Lawrence Hunt"
+    git config --global user.email "lawrence.hunt@gmail.com"
 fi
 
-# If NVM is not installed, install it.
-echo "$os: Checking for NVM..."
-nvm_installed=$(command -v nvm)
-if [[ ${nvm_installed} != 0 ]] ; then
-    if ask "$os: NVM is not installed. Install it?" Y; then
-        echo "$os: Installing NVM..."
-        touch ~/.bash_profile
-        curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
-    fi    
+# If asdf is not installed, install it.
+echo "$os: Checking for asdf..."
+asdf_installed=$(command -v asdf)
+if [[ ${asdf_installed} != 0 ]] ; then
+    if [[ "$os" == "osx" ]]; then
+        if ask "$os: asdf is not installed. Install it?" Y; then
+            echo "$os: Installing asdf..."
+            brew install asdf
+        fi
+    fi   
 else
-    echo "$os: NVM is installed..."
+    echo "$os: asdf is installed..."
 fi
 
 # Configure Terraform.
 if ask "$os: Setup Terraform and Terraform Lint?" Y; then
-    if [[ "$os" == "osx" ]]; then
-        brew install terraform
-        brew tap wata727/tflint
-        brew install tflint
-    elif [[ "$os" == "ubuntu" ]]; then
-        echo "$os: TODO"
-    fi
-fi
-
-# Configure Golang.
-if ask "$os: Setup Golang?" Y; then
     if [[ "$os" == "osx" ]]; then
         brew install terraform
         brew tap wata727/tflint
@@ -302,23 +222,6 @@ if ask "$os: Install/Configure The Silver Searcher?" Y; then
     fi
 fi
 
-# Setup wiktionary cli.
-if ask "$os: Install wped/wikt?" Y; then
-    if [[ "$os" == "osx" ]]; then
-        brew install php-cli php-curl php-xml elinks
-        wget https://raw.githubusercontent.com/mevdschee/wped/master/wped.php -O wped
-        chmod 755 wped
-        sudo mv wped /usr/local/bin/wped
-        sudo ln -s /usr/local/bin/wped /usr/local/bin/wikt
-    elif [[ "$os" == "ubuntu" ]]; then
-        sudo apt-get install php-cli php-curl php-xml elinks
-        wget https://raw.githubusercontent.com/mevdschee/wped/master/wped.php -O wped
-        chmod 755 wped
-        sudo mv wped /usr/bin/wped
-        sudo ln -s /usr/bin/wped /usr/bin/wikt
-    fi
-fi
-
 if ask "$os: Setup AWS/GCP/Azure/Alicloud CLIs?" Y; then
     if [[ "$os" == "osx" ]]; then
         brew install awscli
@@ -348,53 +251,11 @@ if ask "$os: Some changes may require a restart - restart now?" Y; then
         echo "$os: Restarting..."
         echo "TODO"
     fi
-
-    echo "$os: Configuring Git for dwmkerr and GPG signing..."
-    git config --global user.name "Dave Kerr"
-    git config --global user.email "dwmkerr@gmail.com"
-    git config --global user.signingKey "35D965FB60ACC2E94E605038F780C45862199FEC"
-    git config --global commit.gpgSign true
-    git config --global tag.forceSignAnnotated true
-    git config --global gpg.program "gpg2"
 fi
 
 
 
 exit;
-# NOTE: We need to support upgrading tmux too...
-# sudo apt-get -y remove tmux
-
-# Install tmux.
-TMUX_VERSION=2.6
-echo "$os: Checking for tmux..."
-tmux_installed=$(command -v tmux)
-tmux_version=$(tmux -V > /dev/null 2>&1)
-if [[ ${tmux_installed} != 0 ]]; then
-    if ask "$os: tmux ${TMUX_VERSION} is not installed. Install it?" Y; then
-        if [[ "$os" == "osx" ]]; then
-            echo "$os: Installing tmux ${TMUX_VERSION}..."
-            brew install tmux
-            ln -s "$(pwd).tmux.conf" "~/.tmux.conf"
-        elif [[ "$os" == "ubuntu" ]]; then
-            echo "$os: Installing tmux ${TMUX_VERSION}..."
-            # Get the build dependencies.
-            sudo apt-get install -y wget tar libevent-dev libncurses-dev
-            TMUX_DIR="${HOME}/temp/tmux-src"
-            mkdir -p "${TMUX_DIR}"
-            wget -P "${TMUX_DIR}" -q https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz
-            tar xzf "${TMUX_DIR}/tmux-${TMUX_VERSION}.tar.gz" -C "${TMUX_DIR}"
-            pushd "${TMUX_DIR}"/tmux-*
-            ./configure && make -j"$(nproc)" && sudo make install
-            popd
-            rm -rf ~/temp/tmux-src
-            tmux -V
-        fi
-
-        # Now install the tmux plugin manager, then install the plugins.
-        git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-        ~/.tmux/plugins/tpm/bin/install_plugins
-    fi
-fi
 
 # Re-attach to user namespace is needed to get the system clipboard setup.
 brew install reattach-to-user-namespace
